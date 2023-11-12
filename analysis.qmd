@@ -1,0 +1,229 @@
+---
+title: "Food deserts analysis"
+author: "Maria"
+format: 
+  html:
+    theme:
+      light: cosmo
+      dark: [cosmo, theme-dark.scss]
+    code-fold: true
+    code-summary: "Show the code"
+    code-tools: true
+---
+
+
+```{r}
+#| echo: false
+#| output: false
+#| include: false
+library(tidyverse)
+library(leaflet)
+library(plotly)
+library(gt)
+library(reactable)
+library(sf)
+
+```
+
+```{r}
+#| echo: false
+#| output: false
+#| include: false
+data_osm<-read_rds("/Users/e5028514/Desktop/Projects/food/data/osm_new/food_osm_all_postcode_sa_ses_ra.rds")
+
+data_abr<-read_rds("/Users/e5028514/Desktop/Projects/food/data/temp/food_abr_all_postcode_ses_sa.rds")
+
+#data_full<-read_rds("map_data_all_plus_vic_r.rds")
+```
+
+### Setup
+
+
+| Food category | General category | Amenities category |
+|---------------|------------------|--------------------|
+| bakery        | department_store | bar                |
+| beverages     | supermarket      | cafe               |
+| butcher       | wholesale        | fast_food          |
+| cheese        |                  | food_court         |
+| chocolate     |                  | ice_cream          |
+| coffee        |                  | pub                |
+| confectionery |                  | restaurant         |
+| convenience   |                  | kiosk mall         |
+| deli          |                  |                    |
+| dairy         |                  |                    |
+| farm          |                  |                    |
+| frozen_food   |                  |                    |
+| greengrocer   |                  |                    |
+| health_food   |                  |                    |
+| ice_cream     |                  |                    |
+| pasta         |                  |                    |
+| pastry        |                  |                    |
+| seafood       |                  |                    |
+| spices        |                  |                    |
+| tea           |                  |                    |
+| water         |                  |                    |
+| alcohol       |                  |                    |
+| wine          |                  |                    |
+
+: OSM features categories collected
+
+Areas:
+
+Victoria 
+ACT 
+New South Wales 
+Northern Territory 
+SouthAustralia 
+Queensland 
+Tasmania
+
+### Number of food venues per postcode
+
+Some locations cannot be allocated to postcode, but they do have geometry. These are usually locations at ferries or terminals
+
+Such as these ones - overall 67 observations
+
+```{r}
+data_osm|>filter(is.na(postcode_2021))|>st_drop_geometry()|>
+  select(
+    osm_id, 
+    name, 
+    starts_with("addr:"),
+    shop,amenity,
+    sa2_code_2021, sa2_name_2021,
+    sa4_code_2021, sa4_name_2021,
+    ses,
+    ra
+    )|>
+ reactable( defaultPageSize = 5)
+  
+```
+ 
+ 
+
+```{r}
+data_osm|>filter(!is.na(postcode_2021))|>st_drop_geometry()|>
+  mutate(
+    landuse=case_when(landuse=="retail"~1,
+                      landuse=="commercial"~2,
+                      landuse=="farmyard"~3,
+                      landuse=="vineyard"~4,
+                      landuse=="construction" ~5,
+                      TRUE~0),
+    shop=case_when(shop=="convenience"~1,
+                      shop=="supermarket"~2,
+                      shop=="alcohol"~3,
+                      shop=="bakery"~4,
+                      shop=="mall" ~5,
+                      shop=="butcher"~6,
+                      shop=="department_store"~7,
+                      shop=="greengrocer"~8,
+                      shop=="wine" ~9,
+                      TRUE~0),
+    
+  )
+
+```
+
+```{r}
+data_osm|>
+  group_by(postcode_2021)|>
+  summarise(
+    number_venues=n(),
+    
+    #landuse
+    land_retail=sum(landuse==1),
+    land_commectial=sum(landuse==2)/2,
+    land_farmyard=sum(landuse==3)/3,
+    land_vineyard=sum(landuse==4)/4,
+    land_construction=sum(landuse==5)/5,
+    
+    #shop type
+        convenience=sum(landuse==1),
+    supermarket=sum(landuse==2)/2,
+    bakery=sum(landuse==4)/4,
+    mall=sum(landuse==5)/5,
+    butcher=sum(landuse==6)/6,
+    department_store=sum(landuse==7)/7,
+    greengrocer=sum(landuse==8)/8,
+    wine=sum(landuse==9)/9,
+    alcohol=sum(landuse==3)/3,
+  )|>reactable(searchable=TRUE,
+               resizable=TRUE,
+               defaultPageSize = 20,
+               showPageSizeOptions = TRUE,
+               filterable = TRUE
+               )
+```
+
+
+### SA2
+
+
+```{r}
+data_osm|>
+  group_by(sa2_code_2021, sa2_name_2021)|>
+  summarise(
+    number_venues=n(),
+    
+    #landuse
+    land_retail=sum(landuse==1),
+    land_commectial=sum(landuse==2)/2,
+    land_farmyard=sum(landuse==3)/3,
+    land_vineyard=sum(landuse==4)/4,
+    land_construction=sum(landuse==5)/5,
+    
+    #shop type
+        convenience=sum(landuse==1),
+    supermarket=sum(landuse==2)/2,
+    bakery=sum(landuse==4)/4,
+    mall=sum(landuse==5)/5,
+    butcher=sum(landuse==6)/6,
+    department_store=sum(landuse==7)/7,
+    greengrocer=sum(landuse==8)/8,
+    wine=sum(landuse==9)/9,
+    alcohol=sum(landuse==3)/3,
+  )|>reactable(searchable=TRUE,
+               resizable=TRUE,
+               defaultPageSize = 20,
+               showPageSizeOptions = TRUE,
+               filterable = TRUE
+               )
+```
+
+
+
+### SA4
+
+
+```{r}
+data_osm|>
+  group_by(sa4_code_2021, sa4_name_2021)|>
+  summarise(
+    number_venues=n(),
+    
+    #landuse
+    land_retail=sum(landuse==1),
+    land_commectial=sum(landuse==2)/2,
+    land_farmyard=sum(landuse==3)/3,
+    land_vineyard=sum(landuse==4)/4,
+    land_construction=sum(landuse==5)/5,
+    
+    #shop type
+        convenience=sum(landuse==1),
+    supermarket=sum(landuse==2)/2,
+    bakery=sum(landuse==4)/4,
+    mall=sum(landuse==5)/5,
+    butcher=sum(landuse==6)/6,
+    department_store=sum(landuse==7)/7,
+    greengrocer=sum(landuse==8)/8,
+    wine=sum(landuse==9)/9,
+    alcohol=sum(landuse==3)/3,
+  )|>reactable(searchable=TRUE,
+               resizable=TRUE,
+               defaultPageSize = 20,
+               showPageSizeOptions = TRUE,
+               filterable = TRUE
+               )
+```
+

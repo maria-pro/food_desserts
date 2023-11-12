@@ -1,0 +1,131 @@
+---
+title: "Fresh Food in Australia"
+output: 
+  flexdashboard::flex_dashboard:
+    theme:
+      version: 5
+      bootswatch: sandstone
+
+    source_code: embed
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(knitr)
+library(crosstalk)
+library(leaflet)
+library(plotly)
+library(summarywidget)
+library(DT)
+library(reactable)
+library(sf)
+# Install thematic and un-comment for themed static plots (i.e., ggplot2)
+# thematic::thematic_rmd()
+```
+
+
+```{r data}
+data<-read_rds("/Users/e5028514/Desktop/Projects/food/map_data_all_plus_vic_r.rds")|>
+                              mutate(
+                                industry_industry=paste0(main_industry_class_code, "-", main_industry_class )
+                              )|>filter(postcode_2021==3000)
+
+data_shared<-SharedData$new(data)
+
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+# Filter dropdown
+industry_filter <- crosstalk::filter_select(
+  id="industry_type", 
+  label="ABR Industry type", 
+  sharedData = data_shared, 
+  group =~industry_industry,
+multiple = F)
+
+plot<-plot_mapbox(
+  data)|>
+
+  layout(
+    title = "Selected food venues",
+    mapbox = list(style = "basic")
+  )
+
+```
+
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### 
+
+```{r map}
+plot
+```
+
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### **Total Locations Found:** {data-height=70}
+`r summarywidget(data_shared, statistic='count', digits=0)`
+
+
+
+### **Filters:**
+
+
+```{r mapfilters1}
+
+filter_select(
+  id="dataset_type", 
+  label="Dataset", 
+  sharedData = data_shared, 
+  group =~dataset,
+multiple = TRUE)
+
+```
+
+
+```{r mapfilters2}
+
+industry_filter
+
+filter_select(
+  id="osm_shop", 
+  label="OSM venue type", 
+  sharedData = data_shared, 
+  group =~shop,
+multiple = F)
+```
+
+
+```{r mapfilters3}
+
+filter_select(
+  id="postcode", 
+  label="Postcode", 
+  sharedData = data_shared, 
+  group =~postcode_2021,
+multiple = TRUE)
+
+```
+
+```{js}
+function filter_default() {
+    document.getElementById("postcode").getElementsByClassName("selectized") 
+[0].selectize.setValue("3000", false);
+
+
+ }
+$(document).ready(filter_default);
+
+```
+
+
