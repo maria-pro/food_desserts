@@ -65,8 +65,12 @@ food_data_combine<-function(data_file="/Users/e5028514/Desktop/Projects/food/dat
 test<-read_rds("/Users/e5028514/Desktop/Projects/food/coffee/data/osm_amenity_Victoria, Australia.rds")
 
 
+test<-test$osm_points
 
-
+# create leaflet map
+leaflet() %>%
+  addTiles() %>%
+  addMarkers(data = test, popup = ~osm_id)
 
 df <- list.files( path="/Users/e5028514/Desktop/Projects/food/coffee/data/", full.names=TRUE ) %>%
   map(
